@@ -3,6 +3,10 @@ from fastapi import FastAPI
 from app.core.config import settings
 from app.core.database import init_db
 from app.api.health import router as health_router
+from app.api.auth import router as auth_router
+from app.middleware.logger import LoggingMiddleware
+from app.middleware.auth import JWTAuthMiddleware
+from app.middleware.exceptions import register_exception_handlers
 
 
 @asynccontextmanager
@@ -26,5 +30,14 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# Register routes
+# Register custom middlewares
+# Note: Middlewares are executed in reverse order of registration for HTTP requests.
+app.add_middleware(JWTAuthMiddleware)
+app.add_middleware(LoggingMiddleware)
+
+# Register custom error / validation exception handlers
+register_exception_handlers(app)
+
+# Register routers
 app.include_router(health_router)
+app.include_router(auth_router)
