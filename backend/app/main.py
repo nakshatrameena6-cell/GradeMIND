@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from app.core.config import settings
 from app.core.database import init_db
 from app.api.health import router as health_router
-
+from app.api.exams import router as exams_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -28,3 +28,4 @@ app = FastAPI(
 
 # Register routes
 app.include_router(health_router)
+app.include_router(exams_router)
