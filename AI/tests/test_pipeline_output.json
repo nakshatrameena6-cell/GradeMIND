@@ -1,0 +1,196 @@
+{
+  "pdf_url": "https://storage.googleapis.com/grademind-reports/101_report.pdf",
+  "evaluation_summary": {
+    "submission_id": 101,
+    "total_score": 11.0,
+    "max_possible": 15.0,
+    "status": "COMPLETED",
+    "confidence_score": 0.98,
+    "questions": [
+      {
+        "question_number": "1",
+        "max_marks": 5.0,
+        "score_awarded": 5.0,
+        "student_answer_extracted": "Q1. What is Photosynthesis? Student Answer: Photosynthesis is the process used by plants to convert light energy into chemical energy. This occurs in the chloroplasts using chlorophyll. They absorb carbon dioxide and water to make glucose and release oxygen.",
+        "criteria_feedback": "Criteria details: crit_1(2.5/2.5), crit_2(2.5/2.5).",
+        "matched_keywords": [
+          "Photosynthesis ",
+          "They absorb car"
+        ],
+        "rubric_points": [
+          {
+            "criterion_id": "crit_1",
+            "description": "Photosynthesis is the process used by plants to convert light energy to chemical energy inside chloroplasts.",
+            "allocated_marks": 2.5,
+            "marks_awarded": 2.5,
+            "met": true
+          },
+          {
+            "criterion_id": "crit_2",
+            "description": "They absorb carbon dioxide and water to make glucose and release oxygen.",
+            "allocated_marks": 2.5,
+            "marks_awarded": 2.5,
+            "met": true
+          }
+        ],
+        "confidence": 1.0
+      },
+      {
+        "question_number": "2",
+        "max_marks": 5.0,
+        "score_awarded": 5.0,
+        "student_answer_extracted": "Q2. Define Cell Division and compare Mitosis with Meiosis. Student Answer: Cell division is how cells replicate. Mitosis produces two identical diploid daughter cells for growth and repair. Meiosis produces four unique haploid gametes for sexual reproduction.",
+        "criteria_feedback": "Criteria details: crit_1(1.67/1.67), crit_2(1.67/1.67), crit_3(1.66/1.66).",
+        "matched_keywords": [
+          "Cell division i",
+          "Mitosis produce",
+          "Meiosis produce"
+        ],
+        "rubric_points": [
+          {
+            "criterion_id": "crit_1",
+            "description": "Cell division is how cells replicate.",
+            "allocated_marks": 1.67,
+            "marks_awarded": 1.67,
+            "met": true
+          },
+          {
+            "criterion_id": "crit_2",
+            "description": "Mitosis produces two identical diploid daughter cells for growth and repair.",
+            "allocated_marks": 1.67,
+            "marks_awarded": 1.67,
+            "met": true
+          },
+          {
+            "criterion_id": "crit_3",
+            "description": "Meiosis produces four unique haploid gametes for sexual reproduction.",
+            "allocated_marks": 1.66,
+            "marks_awarded": 1.66,
+            "met": true
+          }
+        ],
+        "confidence": 1.0
+      },
+      {
+        "question_number": "3",
+        "max_marks": 5.0,
+        "score_awarded": 1.0,
+        "student_answer_extracted": "Q3. Solve: 2x + 5 = 15. Student Answer: 2x = 15 - 5 => 2x = 10 => x = 5.",
+        "criteria_feedback": "Criteria details: crit_1(0.0/2.5), crit_2(1.0/2.5).",
+        "matched_keywords": [],
+        "rubric_points": [
+          {
+            "criterion_id": "crit_1",
+            "description": "Subtract 5 from both sides: 2x = 10.",
+            "allocated_marks": 2.5,
+            "marks_awarded": 0.0,
+            "met": false
+          },
+          {
+            "criterion_id": "crit_2",
+            "description": "Divide by 2: x = 5.",
+            "allocated_marks": 2.5,
+            "marks_awarded": 1.0,
+            "met": false
+          }
+        ],
+        "confidence": 1.0
+      }
+    ],
+    "fairness_verified": true,
+    "fairness_score": 1.0,
+    "strengths": [
+      "Q1: Strong coverage of 'Photosynthesis is the process used by plants to convert light energy to chemical energy inside chloroplasts.'",
+      "Q1: Strong coverage of 'They absorb carbon dioxide and water to make glucose and release oxygen.'",
+      "Q2: Strong coverage of 'Cell division is how cells replicate.'"
+    ],
+    "weaknesses": [
+      "Q3: Gaps in explaining 'Subtract 5 from both sides: 2x = 10.'",
+      "Q3: Gaps in explaining 'Divide by 2: x = 5.'"
+    ],
+    "improvements": [
+      "Q3: Review standard definitions and context for subtract 5 from both sides: 2x = 10..",
+      "Q3: Review standard definitions and context for divide by 2: x = 5.."
+    ],
+    "summary": "Student achieved a score of 11.0/15.0 (73.3%). The submission shows strong performance in several areas, notably: Q1: Strong coverage of 'Photosynthesis is the process used by plants to convert light energy to chemical energy inside chloroplasts.', Q1: Strong coverage of 'They absorb carbon dioxide and water to make glucose and release oxygen.', Q2: Strong coverage of 'Cell division is how cells replicate.'. For future success, attention should be given to resolving gaps in: Q3: Gaps in explaining 'Subtract 5 from both sides: 2x = 10.', Q3: Gaps in explaining 'Divide by 2: x = 5.'."
+  },
+  "analytics": {
+    "total_submissions": 1,
+    "class_average": 73.33,
+    "highest_score": 11.0,
+    "lowest_score": 11.0,
+    "distribution": {
+      "90-100": 0,
+      "80-89": 0,
+      "70-79": 1,
+      "60-69": 0,
+      "below_60": 0
+    }
+  },
+  "teacher_dashboard": {
+    "total_students": 1,
+    "class_average_percentage": 73.33,
+    "submissions": [
+      {
+        "submission_id": 101,
+        "score_awarded": 11.0,
+        "max_possible": 15.0,
+        "percentage": 73.33,
+        "confidence_score": 0.98,
+        "status": "COMPLETED"
+      }
+    ],
+    "review_queue": [],
+    "review_queue_count": 0,
+    "score_distribution": {
+      "90-100": 0,
+      "80-89": 0,
+      "70-79": 1,
+      "60-69": 0,
+      "below_60": 0
+    }
+  },
+  "student_dashboard": {
+    "submission_id": 101,
+    "score_awarded": 11.0,
+    "max_possible": 15.0,
+    "score_percentage": 73.33,
+    "strengths": [
+      "Q1: Strong coverage of 'Photosynthesis is the process used by plants to convert light energy to chemical energy inside chloroplasts.'",
+      "Q1: Strong coverage of 'They absorb carbon dioxide and water to make glucose and release oxygen.'",
+      "Q2: Strong coverage of 'Cell division is how cells replicate.'"
+    ],
+    "improvements": [
+      "Q3: Review standard definitions and context for subtract 5 from both sides: 2x = 10..",
+      "Q3: Review standard definitions and context for divide by 2: x = 5.."
+    ],
+    "summary_comment": "Student achieved a score of 11.0/15.0 (73.3%). The submission shows strong performance in several areas, notably: Q1: Strong coverage of 'Photosynthesis is the process used by plants to convert light energy to chemical energy inside chloroplasts.', Q1: Strong coverage of 'They absorb carbon dioxide and water to make glucose and release oxygen.', Q2: Strong coverage of 'Cell division is how cells replicate.'. For future success, attention should be given to resolving gaps in: Q3: Gaps in explaining 'Subtract 5 from both sides: 2x = 10.', Q3: Gaps in explaining 'Divide by 2: x = 5.'.",
+    "questions_grades": [
+      {
+        "question_number": "1",
+        "score": 5.0,
+        "max_marks": 5.0,
+        "percentage": 100.0,
+        "feedback": "Criteria details: crit_1(2.5/2.5), crit_2(2.5/2.5)."
+      },
+      {
+        "question_number": "2",
+        "score": 5.0,
+        "max_marks": 5.0,
+        "percentage": 100.0,
+        "feedback": "Criteria details: crit_1(1.67/1.67), crit_2(1.67/1.67), crit_3(1.66/1.66)."
+      },
+      {
+        "question_number": "3",
+        "score": 1.0,
+        "max_marks": 5.0,
+        "percentage": 20.0,
+        "feedback": "Criteria details: crit_1(0.0/2.5), crit_2(1.0/2.5)."
+      }
+    ]
+  },
+  "metadata": {
+    "test_run": true,
+    "engine_version": "v1.0.0"
+  }
+}
