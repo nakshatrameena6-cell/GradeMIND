@@ -32,14 +32,29 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     else:
         expire = datetime.now(timezone.utc) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     
-    to_encode.update({"exp": expire})
+    to_encode.update({"exp": expire, "type": "access", "version": 1})
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
     return encoded_jwt
 
 
-def decode_access_token(token: str) -> Optional[Dict[str, Any]]:
+def create_refresh_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     """
-    Decode and validate a JWT access token.
+    Create a JWT refresh token.
+    """
+    to_encode = data.copy()
+    if expires_delta:
+        expire = datetime.now(timezone.utc) + expires_delta
+    else:
+        expire = datetime.now(timezone.utc) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
+    
+    to_encode.update({"exp": expire, "type": "refresh", "version": 1})
+    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
+    return encoded_jwt
+
+
+def decode_token(token: str, expected_type: str = "access") -> Optional[Dict[str, Any]]:
+    """
+    Decode and validate a JWT token of expected_type.
     Returns the payload dictionary if valid, or None if invalid/expired.
     """
     try:
@@ -48,6 +63,12 @@ def decode_access_token(token: str) -> Optional[Dict[str, Any]]:
             settings.SECRET_KEY,
             algorithms=[settings.JWT_ALGORITHM]
         )
+        if payload.get("type") != expected_type:
+            return None
+        # Revocation prep: In future, check token 'version' or 'jti' against a blacklist here
         return payload
     except JWTError:
         return None
+
+def decode_access_token(token: str) -> Optional[Dict[str, Any]]:
+    return decode_token(token, expected_type="access")
