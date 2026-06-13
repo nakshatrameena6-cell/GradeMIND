@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from typing import Optional
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Base directory of the backend project
@@ -15,6 +16,10 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60  # default to 60 minutes
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     DEBUG: bool = False
+
+    # Groq API Configuration
+    GROQ_API_KEY: Optional[str] = None
+    GROQ_MODEL: str = "llama3-70b-8192"
 
     # Configure Pydantic settings to load from .env file
     model_config = SettingsConfigDict(

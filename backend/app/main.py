@@ -8,6 +8,7 @@ from app.core.database import init_db
 from app.api.health import router as health_router
 from app.api.auth import router as auth_router
 from app.api.exams import router as exams_router
+from app.api.submissions import router as submissions_router
 
 from app.middleware.logger import LoggingMiddleware
 from app.middleware.auth import JWTAuthMiddleware
@@ -23,6 +24,13 @@ async def lifespan(app: FastAPI):
         init_db()
     except Exception as e:
         print(f"Database initialization failed during startup: {e}")
+
+    # Initialize storage directories
+    try:
+        from app.services.storage_service import init_storage
+        init_storage()
+    except Exception as e:
+        print(f"Storage initialization failed during startup: {e}")
 
     yield
 
@@ -47,3 +55,4 @@ register_exception_handlers(app)
 app.include_router(health_router)
 app.include_router(auth_router)
 app.include_router(exams_router)
+app.include_router(submissions_router)
