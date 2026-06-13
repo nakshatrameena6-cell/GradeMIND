@@ -17,6 +17,10 @@ export const Navbar: React.FC<NavbarProps> = ({
   userRole = "Grade Administrator",
   onLogout,
 }) => {
+  const initials = userDisplayName
+    ? userDisplayName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()
+    : 'U';
+
   return (
     <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b border-gray-100 bg-white/50 backdrop-blur-md px-6">
       <div className="flex items-center gap-4">
@@ -43,7 +47,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <span className="text-[10px] text-gray-500 font-medium uppercase tracking-wider">{userRole}</span>
           </div>
           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-surface text-brand-dark font-bold">
-            JD
+            {initials}
           </div>
           {onLogout && (
             <Button variant="ghost" size="sm" onClick={onLogout} className="h-8 w-8 p-0 text-gray-400 hover:text-red-600 ml-2">

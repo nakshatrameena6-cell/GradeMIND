@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
 from app.core.database import init_db
@@ -42,6 +43,15 @@ app = FastAPI(
     description="GradeMIND Backend Foundation - AI-powered answer sheet evaluation platform.",
     debug=settings.DEBUG,
     lifespan=lifespan,
+)
+
+# CORS - allow the Next.js frontend to call the API
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Register custom middlewares

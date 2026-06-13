@@ -3,24 +3,45 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/store/auth-context';
 
 export default function LoginPage() {
   const router = useRouter();
+  const { login, isLoading: authLoading, error: authError, clearError } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [localError, setLocalError] = useState<string | null>(null);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    
-    // Mock Authentication
-    setTimeout(() => {
-      document.cookie = "grademind_auth=true; path=/; max-age=86400";
-      setIsLoading(false);
+    setLocalError(null);
+    clearError();
+
+    try {
+      await login(email, password);
+      // On success, redirect to dashboard
       router.push('/dashboard');
-    }, 1200); // 1.2s fake delay to show loading state
+    } catch (err: unknown) {
+      // Extract error message from axios response
+      let errorMessage = "Login failed. Please check your credentials.";
+      if (err && typeof err === 'object' && 'response' in err) {
+        const axiosError = err as { response?: { data?: { detail?: string; message?: string } } };
+        errorMessage = axiosError.response?.data?.detail
+          || axiosError.response?.data?.message
+          || errorMessage;
+      } else if (err instanceof Error) {
+        errorMessage = err.message;
+      }
+      setLocalError(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
   };
+
+  const displayError = localError || authError;
+  const loading = isLoading || authLoading;
 
   return (
     <div className="min-h-screen flex items-center justify-center p-6 lg:p-12 relative overflow-hidden bg-brand-background">
@@ -75,6 +96,13 @@ export default function LoginPage() {
               <p className="text-gray-500 text-lg font-medium">Please enter your details to sign in.</p>
             </div>
 
+            {/* Error Display */}
+            {displayError && (
+              <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl">
+                <p className="text-red-600 text-sm font-medium">{displayError}</p>
+              </div>
+            )}
+
             <form onSubmit={handleLogin} className="space-y-8">
               <div className="space-y-2">
                 <label className="text-lg font-semibold text-brand-dark block" htmlFor="email">
@@ -123,10 +151,10 @@ export default function LoginPage() {
 
               <button
                 type="submit"
-                disabled={isLoading}
+                disabled={loading}
                 className="w-full bg-brand-primary text-white font-semibold py-5 px-4 rounded-xl text-xl hover:bg-opacity-90 active:scale-[0.98] transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-[0_10px_30px_rgba(134,183,123,0.3)] mt-6"
               >
-                {isLoading ? (
+                {loading ? (
                   <>
                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                     Signing in...

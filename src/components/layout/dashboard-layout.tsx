@@ -3,6 +3,7 @@
 import * as React from "react";
 import { Sidebar } from "./sidebar";
 import { Navbar } from "./navbar";
+import { useAuth } from "@/store/auth-context";
 
 export interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -10,13 +11,10 @@ export interface DashboardLayoutProps {
 
 export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
+  const { user, logout } = useAuth();
 
   const toggleSidebar = () => setIsSidebarOpen((prev) => !prev);
   const closeSidebar = () => setIsSidebarOpen(false);
-  const handleLogout = () => {
-    document.cookie = "grademind_auth=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
-    window.location.href = "/login";
-  };
 
   return (
     <div className="min-h-screen bg-brand-background flex">
@@ -24,7 +22,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
       <Sidebar
         isOpen={isSidebarOpen}
         onClose={closeSidebar}
-        onLogout={handleLogout}
+        onLogout={logout}
       />
 
       {/* Main Content Area */}
@@ -32,7 +30,9 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
         {/* Navbar */}
         <Navbar
           onMenuClick={toggleSidebar}
-          onLogout={handleLogout}
+          onLogout={logout}
+          userDisplayName={user?.name || "Teacher"}
+          userRole={user?.role || "Educator"}
         />
 
         {/* Page Content Body */}

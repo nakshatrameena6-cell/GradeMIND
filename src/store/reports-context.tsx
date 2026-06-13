@@ -1,20 +1,48 @@
 "use client";
 
 import * as React from "react";
-import { Report } from "@/types";
 import { ReportService } from "@/services/report.service";
 
+interface DashboardOverview {
+  total_exams: number;
+  total_submissions: number;
+  evaluated_submissions: number;
+  average_score: number;
+  average_confidence: number;
+}
+
+interface MonitoringData {
+  aggregate_analytics: {
+    total_submissions: number;
+    completed_submissions: number;
+    failed_submissions: number;
+    average_score: number;
+    average_confidence: number;
+  };
+  score_distribution: Record<string, number>;
+  confidence_distribution: Record<string, number>;
+  fairness_metrics: {
+    average_fairness_score: number;
+    bias_free_rate: number;
+    flagged_submissions_count: number;
+  };
+}
+
 interface ReportsState {
-  reports: Report[];
-  isGenerating: boolean;
+  overview: DashboardOverview | null;
+  monitoring: MonitoringData | null;
+  completedSubmissions: unknown[];
   isLoading: boolean;
   error: string | null;
 }
 
 interface ReportsContextType extends ReportsState {
-  loadReports: () => Promise<void>;
-  generateNewReport: (examId: string, format?: Report["format"]) => Promise<void>;
-  triggerDownload: (reportId: string) => Promise<void>;
+  loadOverview: () => Promise<void>;
+  loadMonitoring: () => Promise<void>;
+  loadCompletedSubmissions: () => Promise<void>;
+  downloadPdf: (submissionId: string) => Promise<void>;
+  getExamAnalytics: (examId: string) => Promise<unknown>;
+  getSubmissionReview: (submissionId: string) => Promise<unknown>;
   clearReportsError: () => void;
 }
 
@@ -22,57 +50,87 @@ const ReportsContext = React.createContext<ReportsContextType | undefined>(undef
 
 export const ReportsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [state, setState] = React.useState<ReportsState>({
-    reports: [],
-    isGenerating: false,
+    overview: null,
+    monitoring: null,
+    completedSubmissions: [],
     isLoading: false,
     error: null,
   });
 
-  const loadReports = async () => {
+  const loadOverview = async () => {
     setState((prev) => ({ ...prev, isLoading: true, error: null }));
     try {
-      const reports = await ReportService.listReports();
-      setState((prev) => ({ ...prev, reports, isLoading: false }));
+      const overview = await ReportService.getOverview();
+      setState((prev) => ({ ...prev, overview, isLoading: false }));
     } catch (err) {
       setState((prev) => ({
         ...prev,
         isLoading: false,
-        error: err instanceof Error ? err.message : "Failed to load reports.",
+        error: err instanceof Error ? err.message : "Failed to load overview.",
       }));
     }
   };
 
-  const generateNewReport = async (examId: string, format: Report["format"] = "pdf") => {
-    setState((prev) => ({ ...prev, isGenerating: true, error: null }));
+  const loadMonitoring = async () => {
+    setState((prev) => ({ ...prev, isLoading: true, error: null }));
     try {
-      const newReport = await ReportService.generateReport(examId, format);
-      setState((prev) => ({
-        ...prev,
-        reports: [newReport, ...prev.reports],
-        isGenerating: false,
-      }));
+      const monitoring = await ReportService.getMonitoring();
+      setState((prev) => ({ ...prev, monitoring, isLoading: false }));
     } catch (err) {
       setState((prev) => ({
         ...prev,
-        isGenerating: false,
-        error: err instanceof Error ? err.message : "Failed to generate report.",
+        isLoading: false,
+        error: err instanceof Error ? err.message : "Failed to load monitoring data.",
       }));
-      throw err;
     }
   };
 
-  const triggerDownload = async (reportId: string) => {
+  const loadCompletedSubmissions = async () => {
+    setState((prev) => ({ ...prev, isLoading: true, error: null }));
     try {
-      const downloadUrl = await ReportService.downloadReport(reportId);
-      if (typeof window !== "undefined") {
-        window.open(downloadUrl, "_blank");
-      }
+      const submissions = await ReportService.listReports();
+      setState((prev) => ({ ...prev, completedSubmissions: submissions, isLoading: false }));
+    } catch (err) {
+      setState((prev) => ({
+        ...prev,
+        isLoading: false,
+        error: err instanceof Error ? err.message : "Failed to load submissions.",
+      }));
+    }
+  };
+
+  const downloadPdf = async (submissionId: string) => {
+    try {
+      await ReportService.downloadReportPdf(submissionId);
     } catch (err) {
       setState((prev) => ({
         ...prev,
         error: err instanceof Error ? err.message : "Failed to download report.",
       }));
-      throw err;
+    }
+  };
+
+  const getExamAnalytics = async (examId: string) => {
+    try {
+      return await ReportService.getExamAnalytics(examId);
+    } catch (err) {
+      setState((prev) => ({
+        ...prev,
+        error: err instanceof Error ? err.message : "Failed to load exam analytics.",
+      }));
+      return null;
+    }
+  };
+
+  const getSubmissionReview = async (submissionId: string) => {
+    try {
+      return await ReportService.getSubmissionReview(submissionId);
+    } catch (err) {
+      setState((prev) => ({
+        ...prev,
+        error: err instanceof Error ? err.message : "Failed to load submission review.",
+      }));
+      return null;
     }
   };
 
@@ -84,9 +142,12 @@ export const ReportsProvider: React.FC<{ children: React.ReactNode }> = ({ child
     <ReportsContext.Provider
       value={{
         ...state,
-        loadReports,
-        generateNewReport,
-        triggerDownload,
+        loadOverview,
+        loadMonitoring,
+        loadCompletedSubmissions,
+        downloadPdf,
+        getExamAnalytics,
+        getSubmissionReview,
         clearReportsError,
       }}
     >

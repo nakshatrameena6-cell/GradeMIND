@@ -14,7 +14,7 @@ interface AuthState {
 
 interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<void>;
-  register: (name: string, email: string, role: User["role"]) => Promise<void>;
+  register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   clearError: () => void;
 }
@@ -30,7 +30,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     error: null,
   });
 
-  // Restore session on mount
+  // Restore session on mount by calling /auth/me
   React.useEffect(() => {
     const restoreSession = async () => {
       try {
@@ -46,13 +46,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } else {
           setState((prev) => ({ ...prev, isLoading: false }));
         }
-      } catch (err) {
+      } catch {
         setState({
           user: null,
           token: null,
           isAuthenticated: false,
           isLoading: false,
-          error: err instanceof Error ? err.message : "Failed to restore session.",
+          error: null, // Don't show error on initial load failure
         });
       }
     };
@@ -71,26 +71,45 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isLoading: false,
         error: null,
       });
-    } catch (err) {
+    } catch (err: unknown) {
+      // Extract error message from backend response
+      let errorMessage = "Login failed.";
+      if (err && typeof err === 'object' && 'response' in err) {
+        const axiosError = err as { response?: { data?: { detail?: string; message?: string } } };
+        errorMessage = axiosError.response?.data?.detail
+          || axiosError.response?.data?.message
+          || errorMessage;
+      } else if (err instanceof Error) {
+        errorMessage = err.message;
+      }
       setState((prev) => ({
         ...prev,
         isLoading: false,
-        error: err instanceof Error ? err.message : "Login failed.",
+        error: errorMessage,
       }));
       throw err;
     }
   };
 
-  const register = async (name: string, email: string, role: User["role"]) => {
+  const register = async (name: string, email: string, password: string) => {
     setState((prev) => ({ ...prev, isLoading: true, error: null }));
     try {
-      await AuthService.register(name, email, role);
+      await AuthService.register(name, email, password);
       setState((prev) => ({ ...prev, isLoading: false }));
-    } catch (err) {
+    } catch (err: unknown) {
+      let errorMessage = "Registration failed.";
+      if (err && typeof err === 'object' && 'response' in err) {
+        const axiosError = err as { response?: { data?: { detail?: string; message?: string } } };
+        errorMessage = axiosError.response?.data?.detail
+          || axiosError.response?.data?.message
+          || errorMessage;
+      } else if (err instanceof Error) {
+        errorMessage = err.message;
+      }
       setState((prev) => ({
         ...prev,
         isLoading: false,
-        error: err instanceof Error ? err.message : "Registration failed.",
+        error: errorMessage,
       }));
       throw err;
     }
@@ -107,12 +126,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isLoading: false,
         error: null,
       });
-    } catch (err) {
-      setState((prev) => ({
-        ...prev,
+    } catch {
+      // Even if logout API fails, clear local state
+      setState({
+        user: null,
+        token: null,
+        isAuthenticated: false,
         isLoading: false,
-        error: err instanceof Error ? err.message : "Logout failed.",
-      }));
+        error: null,
+      });
     }
   };
 
