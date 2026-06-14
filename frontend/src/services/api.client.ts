@@ -88,7 +88,7 @@ apiClient.interceptors.response.use(
       if (!refreshToken) {
         clearTokens();
         if (typeof window !== 'undefined') {
-          window.location.href = '/login';
+          window.location.href = '/dashboard';
         }
         return Promise.reject(error);
       }
@@ -132,7 +132,7 @@ apiClient.interceptors.response.use(
         processQueue(refreshError, null);
         clearTokens();
         if (typeof window !== 'undefined') {
-          window.location.href = '/login';
+          window.location.href = '/dashboard';
         }
         return Promise.reject(refreshError);
       } finally {
