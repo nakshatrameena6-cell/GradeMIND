@@ -1,29 +1,26 @@
 'use client';
 
 import React from 'react';
-import { 
-  PieChart, Pie, Cell, 
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer 
-} from 'recharts';
 import { Award, Target, Brain, AlertTriangle, Lightbulb } from 'lucide-react';
+import { BarChartWrapper, PieChartWrapper } from '@/components/charts';
 
 const pieData = [
-  { name: 'Correct', value: 7, color: '#86B77B' },
-  { name: 'Partial', value: 2, color: '#5B8DEF' },
-  { name: 'Incorrect', value: 1, color: '#F87171' },
+  { label: 'Correct', value: 7, color: '#86B77B' },
+  { label: 'Partial', value: 2, color: '#5B8DEF' },
+  { label: 'Incorrect', value: 1, color: '#F87171' },
 ];
 
 const barData = [
-  { question: 'Q1', marks: 10, max: 10 },
-  { question: 'Q2', marks: 8, max: 10 },
-  { question: 'Q3', marks: 10, max: 10 },
-  { question: 'Q4', marks: 5, max: 10 },
-  { question: 'Q5', marks: 10, max: 10 },
-  { question: 'Q6', marks: 9, max: 10 },
-  { question: 'Q7', marks: 10, max: 10 },
-  { question: 'Q8', marks: 0, max: 10 },
-  { question: 'Q9', marks: 4, max: 10 },
-  { question: 'Q10', marks: 10, max: 10 },
+  { label: 'Q1', value: 10, color: 'bg-brand-primary' },
+  { label: 'Q2', value: 8, color: 'bg-brand-primary' },
+  { label: 'Q3', value: 10, color: 'bg-brand-primary' },
+  { label: 'Q4', value: 5, color: 'bg-brand-primary' },
+  { label: 'Q5', value: 10, color: 'bg-brand-primary' },
+  { label: 'Q6', value: 9, color: 'bg-brand-primary' },
+  { label: 'Q7', value: 10, color: 'bg-brand-primary' },
+  { label: 'Q8', value: 0, color: 'bg-red-400' },
+  { label: 'Q9', value: 4, color: 'bg-brand-primary' },
+  { label: 'Q10', value: 10, color: 'bg-brand-primary' },
 ];
 
 const questionTable = [
@@ -81,20 +78,7 @@ export default function ResultsDashboard() {
              <div className="flex justify-between items-center mb-6">
                 <h2 className="text-xl font-bold text-brand-dark">Question vs Marks</h2>
              </div>
-             <div className="h-[300px] w-full">
-               <ResponsiveContainer width="100%" height="100%">
-                 <BarChart data={barData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
-                   <XAxis dataKey="question" axisLine={false} tickLine={false} tick={{ fill: '#9CA3AF', fontSize: 12 }} dy={10} />
-                   <YAxis axisLine={false} tickLine={false} tick={{ fill: '#9CA3AF', fontSize: 12 }} />
-                   <Tooltip 
-                     cursor={{ fill: '#EEF7E8' }}
-                     contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 20px rgba(47,90,58,0.1)' }}
-                   />
-                   <Bar dataKey="marks" fill="#86B77B" radius={[6, 6, 0, 0]} maxBarSize={40} />
-                 </BarChart>
-               </ResponsiveContainer>
-             </div>
+             <BarChartWrapper data={barData} height={300} yAxisLabel="Marks" />
            </div>
 
            {/* Distribution & Performance Summary (Split Row) */}
@@ -102,34 +86,13 @@ export default function ResultsDashboard() {
               {/* Pie Chart */}
               <div className="bg-white rounded-[24px] p-8 shadow-[0_4px_20px_rgba(47,90,58,0.05)] border border-gray-50 flex flex-col items-center">
                  <h2 className="text-xl font-bold text-brand-dark mb-2 w-full text-left">Accuracy Distribution</h2>
-                 <div className="h-[220px] w-full relative">
-                   <ResponsiveContainer width="100%" height="100%">
-                     <PieChart>
-                       <Pie
-                         data={pieData}
-                         innerRadius={65}
-                         outerRadius={85}
-                         paddingAngle={5}
-                         dataKey="value"
-                         stroke="none"
-                       >
-                         {pieData.map((entry, index) => (
-                           <Cell key={`cell-${index}`} fill={entry.color} />
-                         ))}
-                       </Pie>
-                       <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }} />
-                     </PieChart>
-                   </ResponsiveContainer>
-                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                     <span className="text-3xl font-extrabold text-brand-dark">70%</span>
-                   </div>
-                 </div>
+                 <PieChartWrapper data={pieData} height={220} className="w-full" />
                  {/* Legend */}
                  <div className="flex gap-4 mt-4 w-full justify-center">
                     {pieData.map(item => (
-                      <div key={item.name} className="flex items-center gap-2">
+                      <div key={item.label} className="flex items-center gap-2">
                         <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
-                        <span className="text-sm font-medium text-gray-500">{item.name}</span>
+                        <span className="text-sm font-medium text-gray-500">{item.label}</span>
                       </div>
                     ))}
                  </div>
