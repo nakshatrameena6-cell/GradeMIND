@@ -1,13 +1,13 @@
 # Dependencies
-/node_modules
-/.pnp
+node_modules/
+.pnp
 .pnp.js
 .yarn/install-state.gz
 
 # Frontend build output
-/.next/
-/out/
-/build
+.next/
+out/
+build/
 
 # Python
 __pycache__/
@@ -16,7 +16,7 @@ __pycache__/
 *.pyd
 
 # Testing and coverage
-/coverage
+coverage/
 .pytest_cache/
 .coverage
 htmlcov/

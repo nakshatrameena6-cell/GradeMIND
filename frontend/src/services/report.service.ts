@@ -75,6 +75,8 @@ export const ReportService = {
    * Generate a report for an exam (download the submission report).
    */
   generateReport: async (examId: string, _format: string = 'pdf') => {
+    void _format;
+
     // List completed submissions for this exam
     const response = await apiClient.get('/submissions', {
       params: { exam_id: examId, status: 'COMPLETED' },
