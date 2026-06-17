@@ -34,7 +34,6 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
           userDisplayName={user?.name || "Teacher"}
           userRole={user?.role || "Educator"}
         />
-
         {/* Page Content Body */}
         <main className="flex-1 flex flex-col overflow-y-auto">
           {children}
@@ -45,3 +44,4 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
 };
 
 DashboardLayout.displayName = "DashboardLayout";
+

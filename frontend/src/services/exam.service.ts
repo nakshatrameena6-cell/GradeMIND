@@ -1,81 +1,97 @@
-import { apiClient } from './api.client';
+﻿import { apiClient } from './api.client';
 
-export interface ExamData {
+export interface CreateExamData {
   title: string;
   subject: string;
   total_marks: number;
+  question_paper_url?: string | null;
+  answer_key_url?: string | null;
+  evaluation_mode?: 'ANSWER_KEY' | 'AI_AUTONOMOUS';
 }
 
+export interface UpdateExamData {
+  title?: string;
+  subject?: string;
+  total_marks?: number;
+  question_paper_url?: string | null;
+  answer_key_url?: string | null;
+  evaluation_mode?: 'ANSWER_KEY' | 'AI_AUTONOMOUS';
+}
+
+
 export const ExamService = {
-  /**
-   * List all exams - GET /exams
-   */
   getExams: async () => {
     const response = await apiClient.get('/exams');
-    // Backend returns { exams: [...] }
-    return response.data.exams || response.data;
-  },
-
-  /**
-   * Get a single exam by ID - GET /exams/{exam_id}
-   */
-  getExam: async (examId: string) => {
-    const response = await apiClient.get(`/exams/${examId}`);
-    return response.data;
-  },
-
-  /**
-   * Create a new exam - POST /exams
-   */
-  createExam: async (examData: ExamData) => {
-    const response = await apiClient.post('/exams', examData);
-    return response.data;
-  },
-
-  /**
-   * Update an exam - PUT /exams/{exam_id}
-   */
-  updateExam: async (examId: string, examData: Partial<ExamData>) => {
-    const response = await apiClient.put(`/exams/${examId}`, examData);
-    return response.data;
-  },
-
-  /**
-   * Delete an exam - DELETE /exams/{exam_id}
-   */
-  deleteExam: async (examId: string) => {
-    const response = await apiClient.delete(`/exams/${examId}`);
-    return response.data;
-  },
-
-  /**
-   * Upload an exam file with progress tracking.
-   * This now creates an exam and then uploads student sheets as submissions.
-   */
-  uploadExamFile: async (file: File, onProgress?: (progress: number) => void) => {
-    // For the upload flow, we first need to create submissions
-    // The backend expects multipart form data at /submissions/upload
-    const formData = new FormData();
-    formData.append('file', file);
-    
-    const response = await apiClient.post('/submissions/upload', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-      onUploadProgress: (progressEvent) => {
-        if (onProgress && progressEvent.total) {
-          const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-          onProgress(progress);
-        }
-      },
-    });
-    
+    // The backend returns {"exams": [...]}. Wrap it so the frontend gets res.data = [...]
     return {
-      id: response.data.id || response.data.data?.id || file.name,
-      name: file.name,
-      size: file.size,
-      type: file.type,
-      status: 'completed' as const,
-      progress: 100,
-      uploadedAt: new Date().toISOString(),
+      success: true,
+      data: response.data.exams || []
     };
   },
+
+  getExamById: async (examId: string) => {
+    const response = await apiClient.get(`/exams/${examId}`);
+    return {
+      success: true,
+      data: response.data
+    };
+  },
+
+  createExam: async (examData: CreateExamData) => {
+    const response = await apiClient.post('/exams', examData);
+    return {
+      success: true,
+      data: response.data,
+      ...response.data
+    };
+  },
+
+  uploadQuestionPaper: async (examId: string, file: File) => {
+    const formData = new FormData();
+    formData.append('exam_id', examId);
+    formData.append('file', file);
+
+    const response = await apiClient.post('/upload/question-paper', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    return {
+      success: true,
+      data: response.data.data || response.data,
+      ...response.data
+    };
+  },
+
+  uploadAnswerKey: async (examId: string, file: File) => {
+    const formData = new FormData();
+    formData.append('exam_id', examId);
+    formData.append('file', file);
+
+    const response = await apiClient.post('/upload/answer-key', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    return {
+      success: true,
+      data: response.data.data || response.data,
+      ...response.data
+    };
+  },
+
+  updateExam: async (examId: string, examData: UpdateExamData) => {
+    const response = await apiClient.put(`/exams/${examId}`, examData);
+    return {
+      success: true,
+      data: response.data,
+      ...response.data
+    };
+  },
+
+  deleteExam: async (examId: string) => {
+    const response = await apiClient.delete(`/exams/${examId}`);
+    return {
+      success: true,
+      data: response.data,
+      ...response.data
+    };
+  }
 };
+

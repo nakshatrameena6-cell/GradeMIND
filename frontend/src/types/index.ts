@@ -9,7 +9,7 @@ export interface User {
   id: string;
   email: string;
   name: string;
-  role: 'teacher' | 'admin' | 'evaluator';
+  role: 'teacher' | 'admin' | 'evaluator' | 'student';
   createdAt: string;
 }
 
@@ -102,4 +102,7 @@ export interface Report {
   fileSize: string;
   format: 'pdf' | 'csv' | 'xlsx';
   downloadUrl: string;
+  submissionId?: string;
+  status?: string;
+  evaluationMode?: 'ANSWER_KEY' | 'AI_AUTONOMOUS';
 }

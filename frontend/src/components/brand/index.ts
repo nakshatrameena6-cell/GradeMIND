@@ -1,7 +1,6 @@
 export {
   GradeMindLogo,
-  BrainCheckIcon,
-  BrainCheckIconSimplified,
+  GRADEMIND_LOGO_SRC,
   type LogoVariant,
   type GradeMindLogoProps,
 } from "./grademind-logo";

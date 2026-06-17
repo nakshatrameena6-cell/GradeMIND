@@ -67,7 +67,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
       return {
         id: Math.random().toString(36).substring(7),
         file,
-        progress: status === "failed" ? 0 : 100, // mock upload completion directly or upload state
+        progress: status === "failed" ? 0 : 100,
         status,
         error,
       };

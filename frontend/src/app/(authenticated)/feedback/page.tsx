@@ -1,24 +1,178 @@
-'use client';
+﻿'use client';
 
-import React from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { Sparkles, Target, AlertTriangle, BookOpen, Lightbulb, ArrowRight, Brain } from 'lucide-react';
+import { Sparkles, Target, AlertTriangle, BookOpen, Lightbulb, ArrowRight, Brain, ArrowLeft } from 'lucide-react';
+import { SubmissionService } from '@/services/submission.service';
+const normalizeList = (value: any): string[] => {
+  if (Array.isArray(value)) return value.map(item => String(item).trim()).filter(Boolean);
+  if (!value) return [];
+  return String(value)
+    .split('.')
+    .map(item => item.trim())
+    .filter(Boolean);
+};
 
-export default function FeedbackPage() {
+const formatListText = (items: string[], emptyText: string) => {
+  if (!items.length) return emptyText;
+  return items.map(item => item.endsWith('.') ? item : `${item}.`).join(' ');
+};
+
+const splitFeedbackItem = (value: string) => {
+  const parts = String(value || '').split(':');
+  return {
+    title: parts.length > 1 ? parts[0].trim() : '',
+    desc: (parts.length > 1 ? parts.slice(1).join(':') : parts[0]).trim(),
+  };
+};
+
+function FeedbackContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const submissionId = searchParams.get('submissionId') || searchParams.get('id');
+
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [report, setReport] = useState<any>(null);
+  const [submission, setSubmission] = useState<any>(null);
+  const [selectedSubmissionId, setSelectedSubmissionId] = useState<string | null>(submissionId);
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        setLoading(true);
+        setError('');
+        setReport(null);
+        setSubmission(null);
+
+        let activeSubmissionId = submissionId;
+        console.log("submissionId", activeSubmissionId);
+
+        if (!activeSubmissionId) {
+          const submissionsRes = await SubmissionService.getEvaluatedSubmissions();
+          const submissions = submissionsRes.data || [];
+          console.log("evaluated submissions", submissions);
+
+          if (!submissions.length) {
+            setError('No evaluated submissions are available yet.');
+            setLoading(false);
+            return;
+          }
+
+          activeSubmissionId = submissions[0].id;
+          setSelectedSubmissionId(activeSubmissionId);
+          router.replace(`/feedback?submissionId=${activeSubmissionId}`);
+        } else {
+          setSelectedSubmissionId(activeSubmissionId);
+        }
+        const resolvedSubmissionId = activeSubmissionId as string;
+
+        const [subRes, repRes] = await Promise.all([
+          SubmissionService.getSubmissionById(resolvedSubmissionId),
+          SubmissionService.getReport(resolvedSubmissionId)
+        ]);
+
+        if (subRes.success) {
+          setSubmission(subRes.data);
+        }
+
+        if (repRes.success) {
+          setReport(repRes.data);
+        } else {
+          setError('Failed to retrieve feedback details.');
+        }
+      } catch (err: any) {
+        console.error('Failed to load feedback details:', err);
+        setError(err.response?.data?.detail || 'Feedback data is currently not available.');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadData();
+  }, [submissionId, router]);
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-brand-primary border-t-transparent"></div>
+        <p className="text-gray-500 font-semibold">Synthesizing personalized AI feedback...</p>
+      </div>
+    );
+  }
+
+  if (error || !report) {
+    return (
+      <div className="p-8 max-w-4xl mx-auto space-y-6 text-center">
+        <div className="bg-white p-12 rounded-3xl border border-gray-100 shadow-sm flex flex-col items-center gap-6">
+          <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center">
+            <AlertTriangle className="w-8 h-8" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-brand-dark mb-2">Feedback Center</h1>
+            <p className="text-gray-500 max-w-md mx-auto">{error || 'Unable to retrieve the developmental roadmap for this student.'}</p>
+          </div>
+          <div className="flex gap-4">
+            <button 
+              onClick={() => router.push('/reports')}
+              className="px-6 py-3 bg-brand-primary text-white font-bold rounded-xl shadow-md"
+            >
+              Go to Reports Center
+            </button>
+            <button 
+              onClick={() => router.push('/dashboard')}
+              className="px-6 py-3 bg-gray-100 text-brand-dark font-bold rounded-xl border border-gray-200"
+            >
+              Return to Dashboard
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const evalSummary = report.evaluation_summary || {};
+  const metadata = report.metadata || {};
+  const strengths = normalizeList(evalSummary.strengths);
+  const weaknesses = normalizeList(evalSummary.weaknesses);
+  const improvements = normalizeList(evalSummary.improvements);
+  const recommendations = normalizeList(evalSummary.recommendations || evalSummary.study_recommendations);
+
+  const handleDownloadPDF = () => {
+    if (selectedSubmissionId) {
+      const tokenCookie = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('grademind_auth='));
+      const token = tokenCookie ? tokenCookie.split('=')[1] : '';
+      
+      const downloadUrl = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/submissions/${selectedSubmissionId}/pdf?token=${token}`;
+      window.open(downloadUrl, '_blank');
+    } else {
+      alert('Submission ID is not available.');
+    }
+  };
+
   return (
     <div className="p-4 lg:p-6 w-full max-w-full space-y-6">
       
+      {/* Navigation Header */}
+      <div className="flex items-center gap-4">
+        <button 
+          onClick={() => router.back()}
+          className="p-2 hover:bg-gray-100 rounded-full transition-colors text-brand-dark"
+        >
+          <ArrowLeft className="w-6 h-6" />
+        </button>
+        <h1 className="text-xl font-bold text-brand-dark">Detailed AI Feedback Report</h1>
+      </div>
+
       {/* 1. Hero / AI Welcome Card */}
       <div className="bg-brand-secondary rounded-[24px] overflow-hidden shadow-[0_4px_20px_rgba(47,90,58,0.05)] border border-gray-50 flex flex-col relative min-h-[400px]">
         {/* Full-span Background Illustration */}
-        <div className="absolute inset-0 w-full h-full z-0 pointer-events-none opacity-70 overflow-hidden">
-          <Image 
-            src="/images/feedback-illustration.png" 
-            alt="AI Feedback Illustration" 
-            fill
-            className="object-cover object-right mix-blend-multiply scale-[1.2]"
-            priority
-          />
+        <div className="absolute inset-0 w-full h-full z-0 pointer-events-none opacity-20 overflow-hidden">
+          <div className="absolute right-0 bottom-0 w-[500px] h-[500px] bg-brand-primary/10 rounded-full filter blur-3xl"></div>
+          <div className="absolute right-20 top-10 w-[300px] h-[300px] bg-brand-accent/10 rounded-full filter blur-2xl"></div>
         </div>
 
         <div className="p-10 md:w-2/3 lg:w-1/2 flex flex-col justify-center relative z-10 bg-white/85 backdrop-blur-md h-full min-h-[400px] border-r border-white/50">
@@ -30,15 +184,18 @@ export default function FeedbackPage() {
           </div>
           <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-brand-dark mb-6 leading-tight">
             Personalized Insights for <br/>
-            <span className="text-brand-accent">Alex Johnson</span>
+            <span className="text-brand-accent">{metadata.student_name || submission?.student_name}</span>
           </h1>
           <p className="text-gray-600 text-lg max-w-xl leading-relaxed">
-            Based on the recent Advanced Physics Midterm, the AI has generated a comprehensive developmental roadmap. Alex shows exceptional mathematical skills but requires targeted conceptual review.
+            {evalSummary.summary || 'No evaluator summary was returned by the backend.'}
           </p>
           <div className="mt-10">
-            <button className="bg-brand-primary text-white font-bold py-4 px-8 rounded-xl hover:bg-opacity-90 active:scale-95 transition-all shadow-[0_10px_30px_rgba(134,183,123,0.3)] flex items-center gap-2 w-fit">
+            <button 
+              onClick={handleDownloadPDF}
+              className="bg-brand-primary text-white font-bold py-4 px-8 rounded-xl hover:bg-opacity-90 active:scale-95 transition-all shadow-[0_10px_30px_rgba(134,183,123,0.3)] flex items-center gap-2 w-fit"
+            >
               <BookOpen className="w-5 h-5" />
-              Download Study Plan
+              Download Study Plan PDF
             </button>
           </div>
         </div>
@@ -59,18 +216,23 @@ export default function FeedbackPage() {
               <h2 className="text-2xl font-bold text-brand-dark">Core Strengths</h2>
             </div>
             <ul className="space-y-6 relative z-10">
-              <li className="flex gap-4">
-                <div className="mt-1.5 flex-shrink-0 w-2.5 h-2.5 rounded-full bg-brand-primary shadow-[0_0_10px_rgba(134,183,123,0.8)]" />
-                <p className="text-gray-600 text-sm leading-relaxed"><strong className="text-brand-dark block text-base mb-1">Mathematical Rigor</strong> Flawless algebraic manipulation across all answered questions.</p>
-              </li>
-              <li className="flex gap-4">
-                <div className="mt-1.5 flex-shrink-0 w-2.5 h-2.5 rounded-full bg-brand-primary shadow-[0_0_10px_rgba(134,183,123,0.8)]" />
-                <p className="text-gray-600 text-sm leading-relaxed"><strong className="text-brand-dark block text-base mb-1">Formula Application</strong> Successfully selected the correct formulas for kinematics problems.</p>
-              </li>
-              <li className="flex gap-4">
-                <div className="mt-1.5 flex-shrink-0 w-2.5 h-2.5 rounded-full bg-brand-primary shadow-[0_0_10px_rgba(134,183,123,0.8)]" />
-                <p className="text-gray-600 text-sm leading-relaxed"><strong className="text-brand-dark block text-base mb-1">Vector Math</strong> Perfect scores on all graphical vector addition questions.</p>
-              </li>
+              {strengths.length > 0 ? strengths.map((strength: string, idx: number) => {
+                const parts = strength.split(':');
+                const title = parts[0];
+                const desc = parts.slice(1).join(':').trim();
+
+                return (
+                  <li key={idx} className="flex gap-4">
+                    <div className="mt-1.5 flex-shrink-0 w-2.5 h-2.5 rounded-full bg-brand-primary shadow-[0_0_10px_rgba(134,183,123,0.8)]" />
+                    <p className="text-gray-600 text-sm leading-relaxed">
+                      <strong className="text-brand-dark block text-base mb-1">{title}</strong>
+                      {desc || 'Demonstrated high competence and accuracy.'}
+                    </p>
+                  </li>
+                );
+              }) : (
+                <li className="text-gray-400 text-sm italic">No specific strengths mapped.</li>
+              )}
             </ul>
           </div>
 
@@ -83,14 +245,23 @@ export default function FeedbackPage() {
               <h2 className="text-2xl font-bold text-brand-dark">Weak Areas</h2>
             </div>
             <ul className="space-y-6 relative z-10">
-              <li className="flex gap-4">
-                <div className="mt-1.5 flex-shrink-0 w-2.5 h-2.5 rounded-full bg-[#F87171] shadow-[0_0_10px_rgba(248,113,113,0.8)]" />
-                <p className="text-gray-600 text-sm leading-relaxed"><strong className="text-brand-dark block text-base mb-1">Conceptual Friction</strong> Confusing static vs kinetic friction parameters in multi-step equations.</p>
-              </li>
-              <li className="flex gap-4">
-                <div className="mt-1.5 flex-shrink-0 w-2.5 h-2.5 rounded-full bg-[#F87171] shadow-[0_0_10px_rgba(248,113,113,0.8)]" />
-                <p className="text-gray-600 text-sm leading-relaxed"><strong className="text-brand-dark block text-base mb-1">Projectile Angles</strong> Forgetting to isolate x and y vectors before applying gravitational constants.</p>
-              </li>
+              {weaknesses.length > 0 ? weaknesses.map((weakness: string, idx: number) => {
+                const parts = weakness.split(':');
+                const title = parts[0];
+                const desc = parts.slice(1).join(':').trim();
+
+                return (
+                  <li key={idx} className="flex gap-4">
+                    <div className="mt-1.5 flex-shrink-0 w-2.5 h-2.5 rounded-full bg-[#F87171] shadow-[0_0_10px_rgba(248,113,113,0.8)]" />
+                    <p className="text-gray-600 text-sm leading-relaxed">
+                      <strong className="text-brand-dark block text-base mb-1">{title}</strong>
+                      {desc || 'Requires thorough concept revision and practice.'}
+                    </p>
+                  </li>
+                );
+              }) : (
+                <li className="text-gray-400 text-sm italic">No specific weak areas mapped.</li>
+              )}
             </ul>
           </div>
 
@@ -105,26 +276,23 @@ export default function FeedbackPage() {
              <Brain className="absolute -bottom-16 -right-16 w-96 h-96 text-brand-background opacity-60 z-0 pointer-events-none" />
              
              <div className="relative z-10">
-               <h2 className="text-2xl font-bold text-brand-dark mb-8 flex items-center gap-3">
-                 <div className="p-2 bg-brand-accent/10 rounded-xl">
-                   <Brain className="w-6 h-6 text-brand-accent" />
-                 </div>
-                 Deep Performance Analysis
-               </h2>
-               <div className="prose prose-gray max-w-none space-y-6">
-                 <p className="text-gray-600 leading-relaxed text-lg">
-                   Alex has demonstrated an excellent overall grasp of the material, scoring in the top 15% of the class. The AI analysis indicates that cognitive load is not an issue when dealing with complex mathematical operations. 
-                 </p>
-                 <p className="text-gray-600 leading-relaxed text-lg">
-                   However, a pattern has emerged in questions requiring initial state assumptions. When a problem does not explicitly state which formula to use, Alex occasionally selects parameters that conflict with the physical reality of the problem (e.g., assuming an object is already in motion when calculating friction).
-                 </p>
-                 <div className="bg-brand-background rounded-2xl p-6 border-l-4 border-brand-accent mt-8 shadow-inner">
-                   <h4 className="font-bold text-brand-dark mb-2 text-lg">AI Verdict</h4>
-                   <p className="text-gray-600 leading-relaxed">
-                     Shift study focus from &quot;solving equations&quot; to &quot;setting up the problem.&quot; Alex needs practice identifying initial conditions from word problems before any math begins.
-                   </p>
-                 </div>
-               </div>
+                <h2 className="text-2xl font-bold text-brand-dark mb-8 flex items-center gap-3">
+                  <div className="p-2 bg-brand-accent/10 rounded-xl">
+                    <Brain className="w-6 h-6 text-brand-accent" />
+                  </div>
+                  Deep Performance Analysis
+                </h2>
+                <div className="prose prose-gray max-w-none space-y-6">
+                  <p className="text-gray-600 leading-relaxed text-lg">
+                    {evalSummary.summary || 'No deep performance analysis was returned by the backend.'}
+                  </p>
+                  <div className="bg-brand-background rounded-2xl p-6 border-l-4 border-brand-accent mt-8 shadow-inner">
+                    <h4 className="font-bold text-brand-dark mb-2 text-lg">AI Action Plan</h4>
+                    <p className="text-gray-600 leading-relaxed">
+                      {formatListText(improvements, 'No action plan was returned by the backend.')}
+                    </p>
+                  </div>
+                </div>
              </div>
           </div>
 
@@ -140,12 +308,17 @@ export default function FeedbackPage() {
                  Actionable Suggestions
                </h2>
                <div className="space-y-4 flex-1">
-                 <div className="p-5 bg-yellow-50/50 rounded-xl border border-yellow-100 hover:bg-yellow-50 transition-colors">
-                   <p className="text-sm text-gray-700 font-medium leading-relaxed">Draw Free Body Diagrams for every problem, even simple ones, before writing equations.</p>
-                 </div>
-                 <div className="p-5 bg-brand-background rounded-xl border border-gray-100 hover:bg-gray-50 transition-colors">
-                   <p className="text-sm text-gray-700 font-medium leading-relaxed">Review the theoretical definitions of friction coefficients in Chapter 4.</p>
-                 </div>
+                 {improvements.length > 0 ? (
+                   improvements.map((sentence: string, idx: number) => (
+                     <div key={idx} className="p-5 bg-yellow-50/50 rounded-xl border border-yellow-100 hover:bg-yellow-50 transition-colors">
+                       <p className="text-sm text-gray-700 font-medium leading-relaxed">{sentence.endsWith('.') ? sentence : `${sentence}.`}</p>
+                     </div>
+                   ))
+                 ) : (
+                   <div className="p-5 bg-brand-background rounded-xl border border-gray-100">
+                     <p className="text-sm text-gray-400">No suggestions generated yet.</p>
+                   </div>
+                 )}
                </div>
             </div>
 
@@ -158,12 +331,18 @@ export default function FeedbackPage() {
                  Recommended Topics
                </h2>
                <div className="space-y-3 flex-1">
-                 {['Static vs Kinetic Friction', 'Vector Resolution in 2D', 'Initial Value Problems'].map(topic => (
-                   <div key={topic} className="flex items-center justify-between p-4 bg-brand-background hover:bg-brand-surface/20 rounded-xl transition-all cursor-pointer group border border-transparent hover:border-brand-primary/20 hover:shadow-sm">
-                     <span className="font-semibold text-brand-dark text-sm">{topic}</span>
-                     <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-brand-primary transition-colors transform group-hover:translate-x-1" />
+                 {weaknesses.length > 0 ? (
+                   weaknesses.map((weak: string) => splitFeedbackItem(weak).desc || splitFeedbackItem(weak).title).slice(0, 3).map((topic: string) => (
+                     <div key={topic} className="flex items-center justify-between p-4 bg-brand-background hover:bg-brand-surface/20 rounded-xl transition-all cursor-pointer group border border-transparent hover:border-brand-primary/20 hover:shadow-sm">
+                       <span className="font-semibold text-brand-dark text-sm">{topic}</span>
+                       <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-brand-primary transition-colors transform group-hover:translate-x-1" />
+                     </div>
+                   ))
+                 ) : (
+                   <div className="p-5 bg-brand-background rounded-xl border border-gray-100">
+                     <p className="text-sm text-gray-400">No recommended topics were returned by the backend.</p>
                    </div>
-                 ))}
+                 )}
                </div>
                <button className="w-full mt-6 text-sm font-bold text-brand-primary py-3 bg-brand-primary/5 hover:bg-brand-primary/10 rounded-xl transition-colors">
                  Generate Practice Quiz
@@ -177,3 +356,18 @@ export default function FeedbackPage() {
     </div>
   );
 }
+
+export default function FeedbackPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-brand-background flex items-center justify-center">
+        <div className="animate-spin rounded-full h-10 w-10 border-4 border-brand-primary border-t-transparent"></div>
+      </div>
+    }>
+      <FeedbackContent />
+    </Suspense>
+  );
+}
+
+
+

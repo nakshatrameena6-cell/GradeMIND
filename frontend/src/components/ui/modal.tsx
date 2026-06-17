@@ -31,8 +31,12 @@ export const Modal: React.FC<ModalProps> = ({
     }
 
     return () => {
-      document.body.style.overflow = "unset";
-      window.removeEventListener("keydown", handleEscape);
+      if (typeof document !== "undefined") {
+        document.body.style.overflow = "unset";
+      }
+      if (typeof window !== "undefined") {
+        window.removeEventListener("keydown", handleEscape);
+      }
     };
   }, [isOpen, onClose]);
 

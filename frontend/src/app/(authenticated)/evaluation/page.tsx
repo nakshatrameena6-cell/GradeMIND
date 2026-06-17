@@ -1,9 +1,10 @@
-'use client';
+﻿'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useRouter } from 'next/navigation';
-import { CheckCircle2, ChevronRight, Sparkles, Activity } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { CheckCircle2, XCircle, ChevronRight, Sparkles, Activity } from 'lucide-react';
+import { SubmissionService } from '@/services/submission.service';
 
 const agents = [
   { id: 1, name: 'OCR Agent', desc: 'Extracting text and handwriting from student sheets...' },
@@ -14,39 +15,163 @@ const agents = [
   { id: 6, name: 'Report Agent', desc: 'Compiling final analytics and PDF documents...' },
 ];
 
-export default function EvaluationScreen() {
+function EvaluationContent() {
   const router = useRouter();
-  const [currentAgentIndex, setCurrentAgentIndex] = useState(0);
+  const searchParams = useSearchParams();
+  const idsStr = searchParams.get('ids');
+  
+  const [submissionIds, setSubmissionIds] = useState<string[]>([]);
+  const [submissions, setSubmissions] = useState<Record<string, any>>({});
   const [progress, setProgress] = useState(0);
+  const [currentAgentIndex, setCurrentAgentIndex] = useState(0);
   const [isComplete, setIsComplete] = useState(false);
+  const [loadError, setLoadError] = useState('');
 
+  // Parse submission IDs from query
   useEffect(() => {
-    if (isComplete) return;
+    if (idsStr) {
+      setSubmissionIds(idsStr.split(',').filter(Boolean));
+    }
+  }, [idsStr]);
 
-    const totalDuration = 12000; // 12 seconds for the simulation
-    const intervalTime = 50;
-    const progressIncrement = 100 / (totalDuration / intervalTime);
+  // Status Poller
+  useEffect(() => {
+    if (submissionIds.length === 0) return;
 
-    const timer = setInterval(() => {
-      setProgress((prev) => {
-        const next = prev + progressIncrement;
-        
-        const expectedIndex = Math.floor((next / 100) * agents.length);
-        if (expectedIndex !== currentAgentIndex && expectedIndex < agents.length) {
-          setCurrentAgentIndex(expectedIndex);
+    let active = true;
+
+    const fetchStatuses = async () => {
+      try {
+        const nextSubmissions: Record<string, any> = { ...submissions };
+        let updatedAny = false;
+
+        await Promise.all(
+          submissionIds.map(async (id) => {
+            // Only poll if not already finalized
+            const current = submissions[id];
+            if (current && (current.status === 'COMPLETED' || current.status === 'FAILED')) {
+              return;
+            }
+
+            try {
+              const res = await SubmissionService.getStatus(id);
+              if (res.success && res.data) {
+                // If it's first load, get full details to have student name
+                if (!current || !current.student_name) {
+                  const detailsRes = await SubmissionService.getSubmissionById(id);
+                  nextSubmissions[id] = {
+                    ...res.data,
+                    student_name: detailsRes.success ? detailsRes.data.student_name : `Student (${id.substring(0, 4)})`,
+                    student_roll_number: detailsRes.success ? detailsRes.data.student_roll_number : 'N/A'
+                  };
+                } else {
+                  nextSubmissions[id] = {
+                    ...current,
+                    ...res.data
+                  };
+                }
+                updatedAny = true;
+              }
+            } catch (err) {
+              console.error(`Failed to poll status for ${id}:`, err);
+              nextSubmissions[id] = {
+                ...(current || { id }),
+                status: 'FAILED',
+                error_message: 'Evaluation could not be completed. Please retry the submission.'
+              };
+              updatedAny = true;
+            }
+          })
+        );
+
+        if (!active) return;
+
+        if (updatedAny) {
+          setSubmissions(nextSubmissions);
+
+          // Calculate progress & current agent index
+          // Status weightings:
+          // UPLOADED = 15%
+          // PROCESSING = 40% (OCR running)
+          // OCR_COMPLETE = 55%
+          // EVALUATING = 75% (Rubrics running)
+          // COMPLETED = 100%
+          // FAILED = 100%
+          const items = Object.values(nextSubmissions);
+          if (items.length > 0) {
+            let totalProgressSum = 0;
+            let ocrRunning = false;
+            let evalRunning = false;
+            let completed = 0;
+            let failed = 0;
+
+            items.forEach((sub: any) => {
+              if (sub.status === 'COMPLETED') {
+                totalProgressSum += 100;
+                completed++;
+              } else if (sub.status === 'FAILED') {
+                totalProgressSum += 100;
+                failed++;
+              } else if (sub.status === 'EVALUATING') {
+                totalProgressSum += 75;
+                evalRunning = true;
+              } else if (sub.status === 'OCR_COMPLETE') {
+                totalProgressSum += 55;
+              } else if (sub.status === 'PROCESSING') {
+                totalProgressSum += 40;
+                ocrRunning = true;
+              } else {
+                totalProgressSum += 15;
+              }
+            });
+
+            const avgProgress = totalProgressSum / items.length;
+            setProgress(avgProgress);
+
+            // Dynamically assign active agent step
+            if (completed + failed === items.length) {
+              setCurrentAgentIndex(5);
+              setIsComplete(true);
+            } else if (evalRunning) {
+              // Evaluating stages (Rubrics/Fairness/Feedback)
+              if (avgProgress > 80) {
+                setCurrentAgentIndex(4); // Feedback Agent
+              } else if (avgProgress > 70) {
+                setCurrentAgentIndex(3); // Fairness Agent
+              } else {
+                setCurrentAgentIndex(2); // Evaluation Agent
+              }
+            } else if (ocrRunning) {
+              setCurrentAgentIndex(0); // OCR Agent
+            } else {
+              // Pre-processing or intermediate
+              setCurrentAgentIndex(1); // Understanding Agent
+            }
+          }
         }
-
-        if (next >= 100) {
-          clearInterval(timer);
-          setIsComplete(true);
-          return 100;
+      } catch (err) {
+        console.error('Poller error:', err);
+        if (active) {
+          setLoadError('Evaluation could not be completed. Please retry the submission.');
         }
-        return next;
-      });
-    }, intervalTime);
+      }
+    };
 
-    return () => clearInterval(timer);
-  }, [currentAgentIndex, isComplete]);
+    // Initial load
+    fetchStatuses();
+
+    // Schedule poller
+    const interval = setInterval(() => {
+      fetchStatuses();
+    }, 2000);
+
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
+  }, [submissionIds, submissions]);
+
+  const subList = Object.values(submissions);
 
   return (
     <div className="min-h-screen bg-brand-background flex items-center justify-center p-8 overflow-hidden">
@@ -66,6 +191,11 @@ export default function EvaluationScreen() {
       </div>
 
       <div className="max-w-6xl w-full relative z-10">
+        {loadError && (
+          <div className="mb-6 bg-red-50 border border-red-200 text-red-700 rounded-2xl p-4 font-semibold">
+            {loadError}
+          </div>
+        )}
         <AnimatePresence mode="wait">
           {!isComplete ? (
             <motion.div 
@@ -74,9 +204,9 @@ export default function EvaluationScreen() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -50, filter: 'blur(10px)' }}
               transition={{ duration: 0.5 }}
-              className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center"
+              className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start"
             >
-              {/* Left Side: Circular Progress */}
+              {/* Left Side: Circular Progress & Student List */}
               <div className="flex flex-col items-center justify-center">
                 <div className="relative mb-8">
                   <motion.div
@@ -121,14 +251,39 @@ export default function EvaluationScreen() {
                   </div>
                 </div>
 
-                <div className="text-center max-w-sm">
+                <div className="text-center max-w-sm mb-6">
                   <h2 className="text-2xl font-bold text-brand-dark mb-2">Analyzing Submissions</h2>
-                  <p className="text-gray-500">Our agents are currently evaluating the uploaded documents. Please do not close this window.</p>
+                  <p className="text-gray-500 text-sm">Our agents are currently evaluating the uploaded documents. Please do not close this window.</p>
+                </div>
+
+                {/* Submissions Batch list */}
+                <div className="w-full bg-white p-6 rounded-2xl border border-gray-100 shadow-sm max-h-[200px] overflow-y-auto space-y-2">
+                  <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Active Batch Status</div>
+                  {subList.map((sub: any) => (
+                    <div key={sub.id} className="flex items-center justify-between text-sm py-1.5 border-b border-gray-50 last:border-0">
+                      <div className="flex flex-col">
+                        <span className="font-bold text-brand-dark">{sub.student_name}</span>
+                        <span className="text-xs text-gray-400">Roll: {sub.student_roll_number}</span>
+                        {sub.error_message && (
+                          <span className="text-xs text-red-500 mt-1">Evaluation could not be completed. Please retry the submission.</span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className={`px-2 py-0.5 rounded text-xs font-bold ${
+                          sub.status === 'COMPLETED' ? 'bg-green-100 text-green-700' :
+                          sub.status === 'FAILED' ? 'bg-red-100 text-red-700' :
+                          'bg-blue-100 text-blue-700 animate-pulse'
+                        }`}>
+                          {sub.status}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
 
               {/* Right Side: Agent Pipeline */}
-              <div className="relative">
+              <div className="relative w-full">
                 {/* Connecting background line */}
                 <div className="absolute left-[27px] top-6 bottom-6 w-0.5 bg-gray-200/50 rounded-full" />
                 
@@ -205,32 +360,60 @@ export default function EvaluationScreen() {
               initial={{ opacity: 0, scale: 0.9, filter: 'blur(10px)' }}
               animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
               transition={{ duration: 0.7, type: 'spring' }}
-              className="flex flex-col items-center justify-center text-center max-w-2xl mx-auto bg-white p-16 rounded-[2rem] shadow-[0_20px_60px_rgba(47,90,58,0.08)] border border-gray-50"
+              className="flex flex-col items-center justify-center text-center max-w-2xl mx-auto bg-white p-12 rounded-[2rem] shadow-[0_20px_60px_rgba(47,90,58,0.08)] border border-gray-50"
             >
               <motion.div 
                 initial={{ scale: 0 }}
                 animate={{ scale: 1, rotate: [0, 10, 0] }}
-                transition={{ type: 'spring', damping: 10, delay: 0.2 }}
-                className="w-24 h-24 bg-brand-secondary rounded-full flex items-center justify-center mb-8"
+                transition={{
+                  duration: 2,
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }}
+                className="w-20 h-20 bg-brand-secondary rounded-full flex items-center justify-center mb-6"
               >
-                <CheckCircle2 className="w-12 h-12 text-brand-primary" />
+                <CheckCircle2 className="w-10 h-10 text-brand-primary" />
               </motion.div>
               
-              <h1 className="text-5xl font-extrabold text-brand-dark mb-4 tracking-tight">Evaluation Complete</h1>
-              <p className="text-xl text-gray-500 mb-10">
-                The AI pipeline has successfully processed all documents. 142 student sheets have been scored and reports are ready.
+              <h1 className="text-4xl font-extrabold text-brand-dark mb-3 tracking-tight">Evaluation Complete</h1>
+              <p className="text-base text-gray-500 mb-8">
+                The AI pipeline has successfully processed all documents. {subList.length} student sheets have been scored and reports are ready.
               </p>
+
+              {/* Breakdown List */}
+              <div className="w-full bg-gray-50 p-6 rounded-2xl mb-8 max-h-48 overflow-y-auto space-y-2 border border-gray-100 text-left">
+                <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Grading Breakdown</div>
+                {subList.map((sub: any) => (
+                  <div key={sub.id} className="flex items-center justify-between text-sm py-1 border-b border-gray-100 last:border-0">
+                    <div>
+                      <span className="font-bold text-brand-dark">{sub.student_name}</span>
+                      <span className="text-xs text-gray-400 ml-2">Roll: {sub.student_roll_number}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {sub.status === 'FAILED' ? (
+                        <span className="text-red-500 flex items-center gap-1 text-xs font-bold">
+                          <XCircle className="w-4 h-4" /> Failed
+                        </span>
+                      ) : (
+                        <span className="font-extrabold text-brand-primary">
+                          {sub.obtained_marks !== null ? `${sub.obtained_marks} / ${sub.total_marks || 100}` : 'Graded'}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
               
               <div className="flex gap-4 w-full">
                 <button 
                   onClick={() => router.push('/dashboard')}
-                  className="flex-1 px-8 py-4 rounded-xl font-bold text-brand-dark bg-brand-background hover:bg-gray-100 transition-colors border border-gray-200"
+                  className="flex-1 px-8 py-3.5 rounded-xl font-bold text-brand-dark bg-brand-background hover:bg-gray-100 transition-colors border border-gray-200"
                 >
                   Return to Dashboard
                 </button>
                 <button 
-                  onClick={() => router.push('/results')}
-                  className="flex-1 px-8 py-4 rounded-xl font-bold text-white bg-brand-primary hover:bg-opacity-90 active:scale-95 transition-all shadow-[0_10px_30px_rgba(134,183,123,0.3)] flex items-center justify-center gap-2"
+                  onClick={() => router.push(`/results?submissionId=${submissionIds[0]}`)}
+                  className="flex-1 px-8 py-3.5 rounded-xl font-bold text-white bg-brand-primary hover:bg-opacity-90 active:scale-95 transition-all shadow-md flex items-center justify-center gap-2"
                 >
                   View Full Results
                   <ChevronRight className="w-5 h-5" />
@@ -243,3 +426,16 @@ export default function EvaluationScreen() {
     </div>
   );
 }
+
+export default function EvaluationScreen() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-brand-background flex items-center justify-center">
+        <div className="animate-spin rounded-full h-10 w-10 border-4 border-brand-primary border-t-transparent"></div>
+      </div>
+    }>
+      <EvaluationContent />
+    </Suspense>
+  );
+}
+

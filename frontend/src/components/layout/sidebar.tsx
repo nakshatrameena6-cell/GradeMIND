@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/utils/cn";
 import { Button } from "@/components/ui/button";
+import { GradeMindLogo } from "@/components/brand";
 
 export interface SidebarProps {
   isOpen?: boolean;
@@ -48,12 +49,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         isOpen ? "translate-x-0" : "-translate-x-full"
       )}>
         <div className="flex h-16 items-center justify-between px-6 border-b border-gray-50">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-brand-primary flex items-center justify-center shadow-sm">
-              <span className="text-white font-bold text-xl leading-none">G</span>
-            </div>
-            <span className="text-xl font-bold text-brand-dark tracking-tight">GradeMIND</span>
-          </div>
+          <GradeMindLogo variant="sidebar" size={32} textSize="md" />
           {onClose && (
             <Button variant="ghost" size="sm" onClick={onClose} className="md:hidden h-8 w-8 p-0 text-gray-500">
               <X className="h-4 w-4" />
