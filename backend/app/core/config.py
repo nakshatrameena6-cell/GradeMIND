@@ -18,6 +18,13 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     DEBUG: bool = False
     AUTH_ENABLED: bool = False
+    CORS_ALLOWED_ORIGINS: str = (
+        "http://localhost:3000,"
+        "http://127.0.0.1:3000,"
+        "http://localhost:3001,"
+        "http://127.0.0.1:3001"
+    )
+    CORS_ALLOWED_ORIGIN_REGEX: str = r"https://.*\.vercel\.app"
 
     # Groq API Configuration
     GROQ_API_KEY: Optional[str] = None
@@ -44,3 +51,11 @@ class Settings(BaseSettings):
 
 # Instantiate the singleton settings object
 settings = Settings()
+
+
+def get_cors_allowed_origins() -> list[str]:
+    return [
+        origin.strip().rstrip("/")
+        for origin in settings.CORS_ALLOWED_ORIGINS.split(",")
+        if origin.strip()
+    ]

@@ -3,6 +3,7 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
+from app.core.config import BASE_DIR
 
 logger = logging.getLogger("app.middleware.exceptions")
 
@@ -35,7 +36,7 @@ def register_exception_handlers(app: FastAPI) -> None:
         
         try:
             from datetime import datetime
-            with open("d:\\GradeMIND\\backend\\debug.log", "a", encoding="utf-8") as f:
+            with open(BASE_DIR / "debug.log", "a", encoding="utf-8") as f:
                 f.write(f"--- VALIDATION ERROR: {datetime.now()} ---\n")
                 f.write(f"Errors: {errors}\n\n")
         except Exception:
@@ -61,7 +62,7 @@ def register_exception_handlers(app: FastAPI) -> None:
         try:
             import traceback
             from datetime import datetime
-            with open("d:\\GradeMIND\\backend\\debug.log", "a", encoding="utf-8") as f:
+            with open(BASE_DIR / "debug.log", "a", encoding="utf-8") as f:
                 f.write(f"--- UNHANDLED EXCEPTION: {datetime.now()} ---\n")
                 f.write(traceback.format_exc())
                 f.write("\n")

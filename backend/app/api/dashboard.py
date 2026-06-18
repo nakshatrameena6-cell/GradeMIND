@@ -24,6 +24,7 @@ from app.schemas.dashboard import (
 logger = logging.getLogger("GradeMIND.DashboardAPI")
 
 router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
+root_router = APIRouter(tags=["Dashboard"])
 
 
 def _get_dashboard_service(db: Session = Depends(get_db)) -> DashboardService:
@@ -32,6 +33,12 @@ def _get_dashboard_service(db: Session = Depends(get_db)) -> DashboardService:
 
 
 @router.get(
+    "/overview",
+    response_model=DashboardOverviewResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Get Teacher Dashboard Overview Metrics"
+)
+@root_router.get(
     "/overview",
     response_model=DashboardOverviewResponse,
     status_code=status.HTTP_200_OK,
@@ -178,6 +185,12 @@ def download_study_plan_pdf(
 
 
 @router.get(
+    "/monitoring",
+    response_model=MonitoringDataResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Get Evaluation Pipeline Monitoring Stats"
+)
+@root_router.get(
     "/monitoring",
     response_model=MonitoringDataResponse,
     status_code=status.HTTP_200_OK,
