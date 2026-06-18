@@ -4,9 +4,9 @@
   "/login/page": "/login",
   "/page": "/",
   "/(authenticated)/dashboard/page": "/dashboard",
-  "/(authenticated)/results/page": "/results",
   "/(authenticated)/feedback/page": "/feedback",
+  "/(authenticated)/evaluation/page": "/evaluation",
+  "/(authenticated)/results/page": "/results",
   "/(authenticated)/reports/page": "/reports",
-  "/(authenticated)/upload/page": "/upload",
-  "/(authenticated)/evaluation/page": "/evaluation"
+  "/(authenticated)/upload/page": "/upload"
 }
